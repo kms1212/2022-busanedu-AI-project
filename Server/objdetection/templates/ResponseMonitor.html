@@ -1,0 +1,60 @@
+{% extends "rest_framework/base.html" %}
+
+{% block breadcrumbs %}
+<ul class="breadcrumb">
+    <li class="active"><a href="{{ breadcrumb_url }}">Inference Request Response Monitor</a></li>
+</ul>
+{% endblock breadcrumbs %}
+
+{% block request_forms %}
+<form onsubmit="return false;">
+    <fieldset>
+        <div class="prettyprint">
+            <span class="pln" id="log"/>
+        </div><br />
+
+        <input id="message-input" class="form-control" type="text" size="100"/>
+        <a id="message-submit" class="btn btn-primary js-tooltip"
+           style="width: 80px;">Send</a>
+    </fieldset>
+</form>
+{% endblock request_forms %}
+
+{% block script %}
+{{ block.super }}
+
+<script type="text/javascript">
+    let wsock = new WebSocket(
+        `wss://${window.location.host}/ws/detect/response`
+    );
+
+    wsock.onmessage = (e) => {
+        let data = JSON.parse(e.data);
+        let message = data['message'];
+        document.querySelector("#log").innerHTML += (message + '<br>');
+    };
+
+    wsock.onclose = (e) => {
+        console.info('Connection closed.');
+    };
+
+    document.querySelector("#message-input").focus();
+    document.querySelector("#message-input").addEventListener("keyup",(e) => {
+        if (e.keyCode === 13) {
+            let submitbutton = document.querySelector("#message-submit");
+            submitbutton.click();
+        }
+    });
+
+    document.querySelector("#message-submit").addEventListener("click", (e) => {
+        let messageInputDom = document.querySelector("#message-input");
+        let message = messageInputDom.value;
+        wsock.send(JSON.stringify({
+            'message' : message
+        }));
+
+        messageInputDom.value = '';
+    });
+</script>
+
+{% endblock script %}
